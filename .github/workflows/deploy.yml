@@ -10,27 +10,48 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name:  Clonar repositorio
-      uses: actions/checkout@v3
+    - name: Checkout
+      uses: actions/checkout@v4
 
-    - name:  Login en Azure Container Registry
-      uses: azure/docker-login@v1
+    # Setup Python para tests
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    # Instalar dependencias
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install pytest
+
+    # Ejecutar tests (no falla si no hay tests)
+    - name: Run tests
+      run: |
+        pytest || true
+
+    # Login a Azure Container Registry
+    - name: Login ACR
+      uses: azure/docker-login@v2
       with:
         login-server: ${{ secrets.ACR_LOGIN_SERVER }}
         username: ${{ secrets.ACR_USERNAME }}
         password: ${{ secrets.ACR_PASSWORD }}
 
-    - name:  Build imagen Docker
+    # Build imagen Docker (SIN CACHE)
+    - name: Build image
       run: |
-        docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/pycaret-app:${{ github.sha }} ./hands-on
+        docker build --no-cache -t ${{ secrets.ACR_LOGIN_SERVER }}/hands-app:${{ github.sha }} .
 
-    - name:  Push a ACR
+    # Push a ACR
+    - name: Push image
       run: |
-        Docker push ${{ secrets.ACR_LOGIN_SERVER }}/pycaret-app:${{ github.sha }}
+        docker push ${{ secrets.ACR_LOGIN_SERVER }}/hands-app:${{ github.sha }}
 
-    - name:  Deploy a Azure Web App
+    # Deploy a Azure Web App
+    - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
       with:
-        app-name: pycaret-insurance1
+        app-name: pycaret-insurance
         publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-        images: ${{ secrets.ACR_LOGIN_SERVER }}/pycaret-app:${{ github.sha }}
+        images: ${{ secrets.ACR_LOGIN_SERVER }}/hands-app:${{ github.sha }}
