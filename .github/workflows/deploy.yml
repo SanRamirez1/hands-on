@@ -1,0 +1,36 @@
+name: Deploy to Azure
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name:  Clonar repositorio
+      uses: actions/checkout@v3
+
+    - name:  Login en Azure Container Registry
+      uses: azure/docker-login@v1
+      with:
+        login-server: ${{ secrets.ACR_LOGIN_SERVER }}
+        username: ${{ secrets.ACR_USERNAME }}
+        password: ${{ secrets.ACR_PASSWORD }}
+
+    - name:  Build imagen Docker
+      run: |
+        Docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/pycaret-app:${{ github.sha }} ./hands-on
+
+    - name:  Push a ACR
+      run: |
+        Docker push ${{ secrets.ACR_LOGIN_SERVER }}/pycaret-app:${{ github.sha }}
+
+    - name:  Deploy a Azure Web App
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: pycaret-insurance1
+        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+        images: ${{ secrets.ACR_LOGIN_SERVER }}/pycaret-app:${{ github.sha }}
