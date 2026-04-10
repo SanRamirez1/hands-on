@@ -22,7 +22,7 @@ jobs:
 
     - name:  Build imagen Docker
       run: |
-        Docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/pycaret-app:${{ github.sha }} ./hands-on
+        docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/pycaret-app:${{ github.sha }} ./hands-on
 
     - name:  Push a ACR
       run: |
